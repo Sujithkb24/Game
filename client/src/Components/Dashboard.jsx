@@ -1,14 +1,16 @@
 import React from "react";
 import { useNavigate } from 'react-router-dom';
-import '/styles/Dashboard.css'
-
+import '/public/Dashboard.css'
+import Navbar from "./Navbar";
+import '/public/Navbar.css'
 function Dashboard(){
     const Navigate= useNavigate();
     function handle(){
-       Navigate("/login")
+       Navigate("/Login")
     }
     return(
         <div>
+           
         <section className="hero">
         <h1>Welcome to Your Next Adventure!</h1>
         <p>Discover the best we have to offer, right here.</p>
