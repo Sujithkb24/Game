@@ -263,6 +263,7 @@ const BarcodeScanner = () => {
           <tr>
             <th>Product</th>
             <th>Quantity</th>
+            <th>Delete</th>
           </tr>
         </thead>
         <tbody>
@@ -270,6 +271,9 @@ const BarcodeScanner = () => {
             <tr key={index}>
               <td>{item.productname}</td>
               <td>{item.quantity}</td>
+              <td><button onClick={()=>{
+                deleteUserById(item._id)
+              }}/></td>
             </tr>
           ))}
         </tbody>
