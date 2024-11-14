@@ -1,5 +1,5 @@
 import React from "react";
-import '/public/Shop.css'
+import '/styles/Shop.css'
 import CardShop from "./CardShop";
 function Shop(){
     return(

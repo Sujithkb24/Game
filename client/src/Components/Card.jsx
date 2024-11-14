@@ -1,7 +1,7 @@
 import React from "react";
-import {useNavigate} from 'react-router-dom'
-import '/public/Card.css'
+import { useNavigate } from "react-router-dom";
 function Card(props){
+  const path = `http://localhost:5173${props.destination}`
   const navigate=useNavigate();
   function handleClick(){
       navigate(props.sendRequest);

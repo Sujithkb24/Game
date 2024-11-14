@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import Quagga from 'quagga'; // Ensure you have quagga installed
-import {useNavigate} from "react-router-dom"
+import {Navigate} from "react-router-dom"
+import { useAuth } from '../../store/auth';
+import toast from "react-hot-toast"
+import '/styles/BarcodeScanner.css'
 const BarcodeScanner = () => {
 
     const [data, setData] = useState("")
-    const naviagte = useNavigate()
     const [items, setItems] = useState("")
     const [amountInput, setAmountInput] = useState(false)
     const [itemDetails, setItemDetails] = useState([])
     const [amount, setAmount] = useState(0)
+    const {token, shopid} = useAuth()
+    const [add, setAdd] = useState(false)
+    const [incart, setIncart] = useState([])
+    const [table, setTable] = useState(false)
 
-    const startScanner = () => {
+    const backapi = "http://localhost:5000"
+
+    const startScanner =async () => {
+        const targetElement = document.querySelector('#interactive');
         Quagga.init({
             inputStream: {
                 name: "Live",
                 type: "LiveStream",
-                target: document.querySelector('#interactive'), // Target element
+                target: targetElement, // Target element
                 constraints: {
                     facingMode: "environment" // Use the back camera
                 }
@@ -38,20 +46,47 @@ const BarcodeScanner = () => {
             console.log(data, "dataaaaa")
             console.log(`Code detected: ${code}`);
             document.getElementById('result').innerText = `Scanned Code: ${code}`;
-            
-            // Stop scanning after a successful scan
+
             Quagga.stop();
             setData(code)
         });
 
     }
+
+    const getCartItems = async() => {
+        try {
+            const response = await fetch("http://localhost:5000/api/auth/getcartitems", {
+                method: "GET",
+                headers:{
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                    ShopID: shopid
+                }
+            })
+
+            const message = await response.json();
+            setIncart(message.cartItems)
+            setAdd(true)
+            console.log("Runned")
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    useEffect(() => {
+        if(add){
+            setTable(true)
+        }
+    }, [add])
+    
     
     useEffect(() => {
         // Initialize Quagga
-        
+        console.log("Loaded")
 
         startScanner();
-
+        getCartItems()
         
 
         // Cleanup function to stop Quagga when component unmounts
@@ -77,19 +112,19 @@ const BarcodeScanner = () => {
 
                 if(message.productname != "Scan Again")
                 {
-                    setItems(message.productname)
                     setAmountInput(true)
-                    
+                    setItems(message.productname)
+                }else{
+                    toast.error("Product Not Found Scan Again")
                 }
             }
 
-            
             fetchdata()
         }
         
     }, [data])
 
-    const handleClick = () => {
+    const handleScan = () => {
         setData("")
         setAmountInput(false)
         setItems("")
@@ -100,40 +135,153 @@ const BarcodeScanner = () => {
         console.log(items)
     }, [items])
 
-    useEffect(() => {
-        console.log(itemDetails)
-    }, [itemDetails])
 
-    const handleAdd = (e) => {
+    const handleAdd = async(e) => {
         e.preventDefault()
-        setItemDetails([...itemDetails, {productname: items, quantity: Number(amount)}])
+        console.log("add")
+        setItemDetails( [...itemDetails, {productname: items, quantity: Number(amount)}])
+        setAmountInput(false)
     }
+
+    const addToCart = async() => {
+        console.log(itemDetails)
+        const response = await fetch(`${backapi}/api/auth/addtocart`, {
+            method: "POST",
+            headers: {
+                "Content-Type": `application/json`,
+                Authorization: `Bearer ${token}`,
+                ShopID: shopid
+            },
+            body: JSON.stringify(itemDetails[itemDetails.length - 1])
+        })
+        await getCartItems()
+    }
+
+    useEffect(() => {
+        console.log("itemdetails", itemDetails)
+        if(itemDetails.length > 0){
+            addToCart()
+        }
+    }, [itemDetails])
 
     const handleAmount = (e) => {
         const {value} = e.target;
         setAmount(value)
     }
 
+    const deleteUserById = async(itemId) => {
+        console.log(itemId)
+        console.log(incart)
+        const response = await fetch(`${backapi}/api/auth/deleteitemincart`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json", 
+                Authorization: `Bearer ${token}`,
+                shopid: shopid
+            },
+            body: JSON.stringify({itemId: itemId})
+        })
+        const data = await response.json();
+        setIncart(data.cartItems)
+    }
+
+    const handleUpdate = async() => {
+        try {
+            console.log(incart)
+            const data = {cartItems: incart}
+            console.log("data", data)
+            const response = await fetch(`${backapi}/api/auth/updatestock`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                    shopid: shopid,
+                },
+                body: JSON.stringify(data)
+            })
+
+            const result = await response.json();
+            await getCartItems()
+
+            if(result.success){
+                toast.success(result.message)
+            }else{
+                result.errorItems.forEach(element => {
+                    const available = element.quantity;
+                    const productname = element.productname;
+    
+                    toast(
+                        `${productname} insufficient! Only ${available} are available`,
+                        {
+                          duration: 5000,
+                        }
+                      );
+                });
+            }
+
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    if(!token)
+        {
+          return <Navigate to="/"/>
+        }
+      
     return (
-       <>
-         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f0f0f0' }}>
+       
+       
+       <div>
+        
+    
+       
+         <div className="scanner"style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f0f0f0' }}>
+         
             <h1>Barcode Scanner</h1>
             <div id="interactive" style={{ width: '600px', height: '400px', border: '1px solid #ccc', marginBottom: '20px' }}></div>
-            <div id="result" style={{ marginTop: '20px', fontSize: '1.2em' }}></div>
-        </div>
+            <div id="result" style={{marginTop:'20px',fontSize:'1.2em'}}></div>
+       
+        <div className='container'>
         {amountInput ? 
             <>
-                <form onSubmit={handleAdd}  action="">
+            
+                <form onSubmit={handleAdd}  action="" className="form">
                     <input onChange={handleAmount} type="number" placeholder='Quantity' name='quantity' />
-                    <button type='submit'>Add</button>
+                    <button type='submit' className="btn">Add</button>
                 </form>
-            </>:
+               
+            </> :
             <></>
         }
-        <button onClick={handleClick}>Scan Again</button>
-       </>
-        
+        <button onClick={handleScan} className='btn'>Scan Again</button>
+        </div>
+        </div>
+        <div className="table-container">
+      <table className="product-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {incart.map((item, index) => (
+            <tr key={index}>
+              <td>{item.productname}</td>
+              <td>{item.quantity}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+        </div>
+      
+      
+       
+       
     );
 };
+
 
 export default BarcodeScanner;

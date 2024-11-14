@@ -1,6 +1,6 @@
 import React,{useState,useEffect} from "react";
-import'/public/Navbar.css'
-import { useNavigate } from "react-router-dom";
+import '../../styles/Navbar.css'
+import { useNavigate, Navigate } from "react-router-dom";
 <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet"></link>
 function Navbar(){
     const navigate=useNavigate();
@@ -16,7 +16,11 @@ function Navbar(){
         const gotoShop=() =>{
             navigate("/Shop")
         }
-
+        function handleLogout(){
+            return(
+                navigate("/logout")
+            )
+        }
         
         return (
           <div>
@@ -33,7 +37,7 @@ function Navbar(){
                     <li><a  >Notifications</a></li>
                     <li><a  >Contact</a></li>
                     <li><a  >Suppliers</a></li>
-                    <li><a >Logout</a></li>
+                    <li><a onClick={handleLogout} >Logout</a></li>
                     <li><a className="profile-icon" >👤</a></li>
                 </ul>
             </nav>
